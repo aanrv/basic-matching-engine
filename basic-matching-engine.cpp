@@ -47,6 +47,7 @@ public:
         o.price = price;
         return true;
     }
+
 private:
     std::ifstream tradesFile;
 };
@@ -64,6 +65,22 @@ public:
 //        cout << "AFTER:\n" << *this << endl;
         cout << "-----------------------" << endl;
     }
+
+    ~OrderBook() {
+        for (auto& [_, ordersVector] : priceBids) {
+            for (Order* o : ordersVector) {
+                delete o;
+            }
+            ordersVector.clear();
+        }
+        for (auto& [_, ordersVector] : priceAsks) {
+            for (Order* o : ordersVector) {
+                delete o;
+            }
+            ordersVector.clear();
+        }
+    }
+
 
     friend ostream& operator<<(ostream&, const OrderBook&);
 private:
