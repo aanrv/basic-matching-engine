@@ -5,7 +5,6 @@
 #include <vector>
 #include <algorithm>
 #include <cassert>
-using namespace std;
 
 enum class Type_t { MarketOrder, LimitOrder };
 enum class Side_t { BUY, SELL };
@@ -16,7 +15,7 @@ struct Order {
     long price;
 };
 
-ostream& operator<<(ostream& os, const Order& o) {
+std::ostream& operator<<(std::ostream& os, const Order& o) {
     os <<
         (o.type == Type_t::MarketOrder ? "Market" : "Limit") << " " <<
         (o.side == Side_t::BUY ? "Buy" : "Sell") << " " <<
@@ -27,12 +26,12 @@ ostream& operator<<(ostream& os, const Order& o) {
 
 class OrderReader {
 public:
-    OrderReader(string filename) : tradesFile(filename) {}
+    OrderReader(std::string filename) : tradesFile(filename) {}
     bool readNext(Order& o) {
         if (tradesFile.eof()) return false;
-        string line;
+        std::string line;
         if (!getline(tradesFile, line)) return false;
-        stringstream ss;
+        std::stringstream ss;
         ss << line;
         char delim, nl;
         char type;
@@ -55,15 +54,13 @@ private:
 class OrderBook {
 public:
     void handleOrder(Order o) {
-//        cout << "BEFORE:\n" << *this << endl;
-        cout << "Handling order: " << o << endl;
+        std::cout << "Handling order: " << o << std::endl;
         // exec as many shares as possible
         while (execOrder(o))
             ;
         // if limit order, add to book
         if (o.quantity && isLimitOrder(o)) addOrder(o);
-//        cout << "AFTER:\n" << *this << endl;
-        cout << "-----------------------" << endl;
+        std::cout << "-----------------------" << std::endl;
     }
 
     ~OrderBook() {
@@ -81,23 +78,23 @@ public:
         }
     }
 
+    friend std::ostream& operator<<(std::ostream&, const OrderBook&);
 
-    friend ostream& operator<<(ostream&, const OrderBook&);
 private:
     void addOrder(const Order& o) {
-        cout << "adding order " << o << endl;
+        std::cout << "adding order " << o << std::endl;
         Order no = o;
         Order* newOrder = new Order(o);
         if (o.side == Side_t::BUY) priceBids[o.price].push_back(newOrder);
         if (o.side == Side_t::SELL) priceAsks[o.price].push_back(newOrder);
     }
     bool removeOrder(Order const * o) {
-        cout << "removing order " << *o << endl;
+        std::cout << "removing order " << *o << std::endl;
         if (o->side == Side_t::BUY) {
             auto& sideOrders = priceBids;
             auto priceSearch = sideOrders.find(o->price);
             if (priceSearch == sideOrders.end()) return false;
-            vector<Order*>& ordersList = priceSearch->second;
+            std::vector<Order*>& ordersList = priceSearch->second;
             auto orderSearch = find(ordersList.begin(), ordersList.end(), o);
             if (orderSearch == ordersList.end()) return false;
             delete o;
@@ -107,7 +104,7 @@ private:
             auto& sideOrders = priceAsks;
             auto priceSearch = sideOrders.find(o->price);
             if (priceSearch == sideOrders.end()) return false;
-            vector<Order*>& ordersList = priceSearch->second;
+            std::vector<Order*>& ordersList = priceSearch->second;
             auto orderSearch = find(ordersList.begin(), ordersList.end(), o);
             if (orderSearch == ordersList.end()) return false;
             delete o;
@@ -121,28 +118,27 @@ private:
         if (isMarketOrder(o)) {
             Order* target = getTop(otherSide(o.side));
             if (!target) return false;
-            int execAmt = min(o.quantity, target->quantity);
+            int execAmt = std::min(o.quantity, target->quantity);
             o.quantity -= execAmt;
             target->quantity -= execAmt;
-            cout << "filled " << execAmt << " shares" << endl;
+            std::cout << "filled " << execAmt << " shares" << std::endl;
             if (target->quantity == 0) removeOrder(target);
             assert(o.quantity >= 0);
         } else {
             if (!limitPriceMatch(o)) return false;
             Order* target = getTop(otherSide(o.side));
             if (!target) return false;
-            int execAmt = min(o.quantity, target->quantity);
+            int execAmt = std::min(o.quantity, target->quantity);
             o.quantity -= execAmt;
             target->quantity -= execAmt;
-            cout << "filled " << execAmt << " shares" << endl;
+            std::cout << "filled " << execAmt << " shares" << std::endl;
             if (target->quantity == 0) removeOrder(target);
         }
-
         return true;
     }
 
-    map<long, vector<Order*>, std::greater<long>> priceBids;
-    map<long, vector<Order*>> priceAsks;
+    std::map<long, std::vector<Order*>, std::greater<long>> priceBids;
+    std::map<long, std::vector<Order*>> priceAsks;
 
     inline Side_t otherSide(Side_t s) const {
         return s == Side_t::BUY ? Side_t::SELL : Side_t::BUY;
@@ -181,7 +177,7 @@ private:
     }
 };
 
-ostream& operator<<(ostream& os, const OrderBook& b) {
+std::ostream& operator<<(std::ostream& os, const OrderBook& b) {
     os << "Bids: ";
     for (auto const& [price, orders] : b.priceBids) {
         for (Order* o : orders) {
@@ -199,20 +195,20 @@ ostream& operator<<(ostream& os, const OrderBook& b) {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        cout << "Usage: " << argv[0] << " tradesFileCSV\n";
-        cout << "\nFile Format:\n\n\t<M|L>,<B|S>,quantity,price\n\n";
-        cout << "\twhere M = Market, L = Limit, B = Buy, S = Sell, typeof(quantity) = int, typeof(price) = long" << endl;
+        std::cout << "Usage: " << argv[0] << " tradesFileCSV\n";
+        std::cout << "\nFile Format:\n\n\t<M|L>,<B|S>,quantity,price\n\n";
+        std::cout << "\twhere M = Market, L = Limit, B = Buy, S = Sell, typeof(quantity) = int, typeof(price) = long" << std::endl;
         return EXIT_SUCCESS;
     }
-    char* tradesFileCSV = argv[1];
+    char const * tradesFileCSV = argv[1];
     OrderReader reader(tradesFileCSV);
     OrderBook book;
     Order o;
     while (reader.readNext(o)) {
         book.handleOrder(o);
     }
-    cout << '\n';
-    cout << "EOD Book" << endl;
-    cout << book << endl;
+    std::cout << '\n';
+    std::cout << "EOD Book" << std::endl;
+    std::cout << book << std::endl;
 }
 
