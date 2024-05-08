@@ -187,7 +187,8 @@ int main(int argc, char** argv) {
         cout << "\twhere M = Market, L = Limit, B = Buy, S = Sell, typeof(quantity) = int, typeof(price) = long" << endl;
         return EXIT_SUCCESS;
     }
-    OrderReader reader("test.txt");
+    char* tradesFileCSV = argv[1];
+    OrderReader reader(tradesFileCSV);
     OrderBook book;
     Order o;
     while (reader.readNext(o)) {
